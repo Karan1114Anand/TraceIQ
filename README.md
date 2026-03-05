@@ -52,8 +52,8 @@ ollama pull mistral
 ### Step 3 — Clone the repo
 
 ```bash
-git clone https://github.com/your-username/ARA_2.git
-cd ARA_2
+git clone https://github.com/Karan1114Anand/TraceIQ.git
+cd TraceIQ
 ```
 
 ### Step 4 — Install Python dependencies
@@ -110,25 +110,6 @@ Open **http://localhost:8501** in your browser.
 
 ---
 
-## CLI Usage (no UI)
-
-**Index documents and run the full pipeline:**
-```bash
-python app/main.py --topic "Impact of AI on healthcare" --docs-dir data/uploads
-```
-
-**Verify everything is wired up (no Ollama call):**
-```bash
-python app/main.py --topic "test" --dry-run
-```
-
-**Index only (no research):**
-```bash
-python app/main.py --topic "x" --docs-dir data/uploads --dry-run
-```
-
-Reports are saved to `outputs/report_<topic>_<timestamp>.json`.
-
 ---
 
 ## Configuration
@@ -174,7 +155,7 @@ HF_LOCAL_MODEL_PATH=C:\path\to\all-MiniLM-L6-v2
 ## Project Structure
 
 ```
-ARA_2/
+TraceIQ/
 ├── app/
 │   ├── __init__.py              # Windows SSL patch (auto-applied)
 │   ├── main.py                  # CLI entrypoint
@@ -276,11 +257,10 @@ User question
 Ollama is already running in the background — this is fine. Skip `ollama serve`.
 
 ### `ModuleNotFoundError: No module named 'app'`
-Run from the project root with Streamlit or use `-m`:
+Run from the project root:
 ```bash
 # ✅ Correct
 streamlit run app/ui.py
-python -m app.main --topic "..."
 
 # ❌ Wrong
 cd app && python main.py
@@ -299,9 +279,7 @@ HF_LOCAL_MODEL_PATH=C:\Users\YourName\.cache\huggingface\hub\models--sentence-tr
 ```
 
 ### Context is always empty (0 chunks)
-You haven't indexed documents yet. Either:
-- Upload via the sidebar and click "Index Documents", or
-- Run `python app/main.py --topic "..." --docs-dir data/uploads`
+You haven't indexed documents yet. Upload your files via the sidebar and click **"Index Documents"**.
 
 ### Changing the LLM model
 ```bash
