@@ -1,0 +1,53 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+ENV/
+.env.local
+
+# --- Environment / secrets ---
+.env
+!.env.example
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# --- Generated data (do NOT commit) ---
+data/chroma_db/
+data/uploads/
+outputs/
+logs/
+
+# --- IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# --- Kiro / tool caches ---
+.kiro/
+
+# --- Streamlit cache ---
+.streamlit/
+
+# --- Model caches ---
+*.bin
+*.safetensors
+*.ot
+sentence_transformers_cache/
+huggingface_cache/

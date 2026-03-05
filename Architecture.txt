@@ -1,0 +1,668 @@
+AUTONOMOUS RESEARCH ANALYST - SYSTEM ARCHITECTURE
+
+PROJECT OVERVIEW
+An Autonomous Research Analyst is an AI system that performs deep research by:
+1. Breaking a main research topic into smaller sub-questions
+2. Retrieving relevant information from an indexed knowledge base using RAG
+3. Reranking the retrieved evidence
+4. Synthesizing a structured research report with citations
+5. Running gap analysis to identify missing coverage and trigger another retrieval loop if needed
+
+======================================================================
+1. HIGH-LEVEL SYSTEM FLOW
+======================================================================
+
+User Query
+   ->
+Planner Agent
+   ->
+Query Expansion / Research Plan
+   ->
+Retrieval Agent
+   -> Keyword Search
+   -> Semantic Search
+   -> Hybrid Retrieval
+   ->
+Reranker
+   ->
+Context Builder
+   ->
+Synthesizer Agent
+   ->
+Gap Analysis Agent
+   -> If gaps found: loop back to Retrieval Agent
+   -> If complete: generate Final Report
+   ->
+Final Structured Research Report
+
+======================================================================
+2. CORE SYSTEM ARCHITECTURE
+======================================================================
+
+A. USER LAYER
+- Accepts the input research question or topic from the user
+- Can be exposed through CLI, API, or frontend interface
+
+Input:
+- Main research topic or question
+
+Output:
+- Query sent to orchestration layer
+
+--------------------------------------------------
+
+B. ORCHESTRATION LAYER
+- Controls the full workflow of the system
+- Manages state across all agents
+- Coordinates sequential and iterative execution
+- Handles retries, loop termination, and failure management
+
+Recommended Tools:
+- LangGraph
+- CrewAI
+- Python workflow controller
+
+Responsibilities:
+- Receive user query
+- Send query to planner
+- Route sub-questions to retrieval pipeline
+- Trigger synthesis
+- Run gap analysis
+- Loop if additional research is needed
+- Return final report
+
+--------------------------------------------------
+
+C. PLANNER AGENT
+- Decomposes the user’s research topic into smaller, answerable sub-questions
+- Creates a research plan for the retrieval stage
+- Defines search intent and structure of the report
+
+Input:
+- User research query
+
+Output:
+- List of sub-questions
+- Search objectives
+- Structured research plan
+
+Example Prompt:
+"Break the following research topic into clear sub-questions needed to produce a comprehensive report: {topic}"
+
+Responsibilities:
+- Understand the main topic
+- Identify key dimensions of research
+- Produce comprehensive sub-questions
+- Ensure coverage of all major aspects
+
+--------------------------------------------------
+
+D. RETRIEVAL LAYER
+- Retrieves relevant document chunks from the knowledge base
+- Supports multiple retrieval strategies to improve recall
+
+Components:
+1. Semantic Search
+   - Uses embeddings to find semantically similar chunks
+
+2. Keyword Search
+   - Uses exact term matching / BM25-like retrieval
+
+3. Hybrid Retrieval
+   - Combines semantic and keyword retrieval
+
+Input:
+- Sub-question from Planner Agent
+
+Output:
+- Top-k candidate chunks from the knowledge base
+
+Responsibilities:
+- Convert query into retrieval-ready format
+- Search vector database
+- Optionally search keyword index
+- Merge and return relevant chunks
+
+--------------------------------------------------
+
+E. KNOWLEDGE BASE LAYER
+- Stores the indexed document collection used for retrieval
+
+Data Sources:
+- PDFs
+- Research papers
+- Reports
+- Articles
+- Notes and internal documents
+
+Processing Pipeline:
+1. Document loading
+2. PDF parsing
+3. Text cleaning
+4. Chunking
+5. Metadata tagging
+6. Embedding generation
+7. Storage in vector database
+
+Stored Components:
+- Raw documents
+- Parsed text
+- Chunks
+- Metadata
+- Embeddings
+
+Metadata examples:
+- doc_id
+- chunk_id
+- source_name
+- page_number
+- section_title
+- file_path
+- timestamp
+
+Vector Database Options:
+- ChromaDB
+- FAISS
+- Pinecone
+
+--------------------------------------------------
+
+F. RERANKER
+- Receives candidate chunks from the retriever
+- Reorders them based on final relevance to the sub-question
+- Filters noise and improves precision before synthesis
+
+Input:
+- Retrieved top-k chunks
+
+Output:
+- Best-ranked chunks
+
+Responsibilities:
+- Improve context relevance
+- Remove low-quality chunks
+- Reduce duplicate evidence
+- Optimize final context passed to synthesizer
+
+Possible approaches:
+- Cross-encoder reranking
+- LLM-based reranking
+- Reciprocal rank fusion
+- Weighted semantic + keyword scoring
+
+--------------------------------------------------
+
+G. CONTEXT BUILDER
+- Prepares the final evidence package for the synthesizer
+- Formats selected chunks with metadata and citations
+- Ensures token budget is controlled
+
+Input:
+- Best-ranked chunks from reranker
+
+Output:
+- Structured LLM-ready context
+
+Responsibilities:
+- Merge top chunks
+- Preserve citation metadata
+- Label chunks clearly
+- Trim context to fit model limits
+- Group chunks by source or sub-question if needed
+
+Example output format:
+[Chunk 1 | Source: paper_A.pdf | Page: 3 | Chunk ID: c_001]
+{text}
+
+[Chunk 2 | Source: report_B.pdf | Page: 7 | Chunk ID: c_014]
+{text}
+
+--------------------------------------------------
+
+H. SYNTHESIZER AGENT
+- Generates the structured research report using only retrieved context
+- Produces grounded output with citations
+
+Input:
+- Ranked context
+- Planner sub-question structure
+
+Output:
+- Draft structured research report
+
+Example Prompt:
+"Using only the provided context, write a structured research summary with citations."
+
+Responsibilities:
+- Summarize findings
+- Organize output into sections
+- Cite evidence
+- Avoid hallucination
+- Maintain consistency with available context
+
+Expected output sections:
+- Introduction / overview
+- Findings by sub-question
+- Key insights
+- Limitations / missing evidence
+- References / citations
+
+--------------------------------------------------
+
+I. GAP ANALYSIS AGENT
+- Evaluates whether the current report sufficiently answers all planned sub-questions
+- Triggers another retrieval loop if important gaps remain
+
+Input:
+- Draft report
+- Original research plan
+- Retrieved evidence coverage
+
+Output:
+- Decision: finalize or continue research
+- Additional follow-up queries if needed
+
+Responsibilities:
+- Detect unanswered sub-questions
+- Identify weakly supported claims
+- Check for missing perspectives
+- Trigger another retrieval cycle when needed
+- Prevent premature finalization
+
+Loop condition:
+If gaps found:
+   -> Generate missing queries
+   -> Send back to Retrieval Agent
+Else:
+   -> Approve final report
+
+--------------------------------------------------
+
+J. OUTPUT LAYER
+- Produces the final report for the end user
+
+Final Output:
+- Structured research report
+- Section-wise findings
+- In-text citations
+- Source references
+- Optional executive summary
+
+======================================================================
+3. MODULAR IMPLEMENTATION ARCHITECTURE
+======================================================================
+
+MODULE 1: INGESTION MODULE
+Purpose:
+- Build and maintain the knowledge base
+
+Responsibilities:
+- Load documents
+- Parse PDFs
+- Clean extracted text
+- Split text into chunks
+- Generate embeddings
+- Store chunks and metadata in vector database
+
+Inputs:
+- Raw documents
+
+Outputs:
+- Indexed knowledge base
+
+--------------------------------------------------
+
+MODULE 2: PLANNING MODULE
+Purpose:
+- Decompose the user query into actionable research tasks
+
+Responsibilities:
+- Generate sub-questions
+- Define search angles
+- Create report structure
+
+Inputs:
+- User query
+
+Outputs:
+- Research plan
+- Sub-questions
+
+--------------------------------------------------
+
+MODULE 3: RETRIEVAL MODULE
+Purpose:
+- Search the knowledge base for relevant evidence
+
+Responsibilities:
+- Run semantic search
+- Run keyword search
+- Combine results
+- Return top-k chunks
+
+Inputs:
+- Sub-question
+
+Outputs:
+- Candidate chunks
+
+--------------------------------------------------
+
+MODULE 4: RERANKING MODULE
+Purpose:
+- Improve the quality of retrieved evidence
+
+Responsibilities:
+- Score and sort chunks
+- Remove weak evidence
+- Reduce duplicates
+
+Inputs:
+- Candidate chunks
+
+Outputs:
+- Best-ranked chunks
+
+--------------------------------------------------
+
+MODULE 5: SYNTHESIS MODULE
+Purpose:
+- Generate the report from retrieved evidence
+
+Responsibilities:
+- Create section-wise summaries
+- Ground output in context only
+- Add citations
+
+Inputs:
+- Context package
+
+Outputs:
+- Draft report
+
+--------------------------------------------------
+
+MODULE 6: GAP ANALYSIS MODULE
+Purpose:
+- Check completeness of the report
+
+Responsibilities:
+- Evaluate missing coverage
+- Detect weak support
+- Trigger additional research loop if needed
+
+Inputs:
+- Draft report
+- Research plan
+
+Outputs:
+- Finalize or continue decision
+
+--------------------------------------------------
+
+MODULE 7: ORCHESTRATOR MODULE
+Purpose:
+- Coordinate the whole agentic workflow
+
+Responsibilities:
+- Manage state
+- Connect modules
+- Trigger loops
+- Control workflow termination
+- Handle errors
+
+Inputs:
+- Workflow state
+
+Outputs:
+- Final report
+
+======================================================================
+4. DATA FLOW
+======================================================================
+
+RAW DOCUMENT PIPELINE
+
+Raw Documents
+   ->
+PDF Parser / Document Loader
+   ->
+Text Cleaner
+   ->
+Chunker
+   ->
+Metadata Tagger
+   ->
+Embedding Generator
+   ->
+Vector DB + Chunk Store
+
+--------------------------------------------------
+
+QUERY PIPELINE
+
+User Query
+   ->
+Planner Agent
+   ->
+Sub-questions
+   ->
+Retriever
+   ->
+Top-k Chunks
+   ->
+Reranker
+   ->
+Relevant Context
+   ->
+Synthesizer
+   ->
+Draft Report
+   ->
+Gap Analysis
+   -> If incomplete: back to Retriever
+   -> If complete: Final Output
+
+======================================================================
+5. RECOMMENDED TECH MAPPING
+======================================================================
+
+LLM / TEXT GENERATION LAYER
+Recommended:
+- Ollama
+
+Used for:
+- Planner Agent
+- Synthesizer Agent
+- Gap Analysis Agent
+- Proposition extraction
+- Agentic chunking helpers
+
+Reason:
+- Reliable local inference
+- No API cost
+- No rate limits
+- Works offline
+
+--------------------------------------------------
+
+EMBEDDING LAYER
+Recommended:
+- HuggingFace sentence-transformers
+
+Used for:
+- Document chunk embeddings
+- Query embeddings
+
+Reason:
+- Local embedding generation
+- Good retrieval performance
+- No API calls required
+
+--------------------------------------------------
+
+VECTOR STORE LAYER
+Recommended:
+- ChromaDB or FAISS
+
+Used for:
+- Storing document chunk vectors
+- Semantic retrieval
+
+--------------------------------------------------
+
+ORCHESTRATION LAYER
+Recommended:
+- LangGraph
+
+Reason:
+- Multi-agent workflow
+- Stateful execution
+- Supports loops and branching
+- Good fit for planner -> retrieve -> synthesize -> gap-analysis design
+
+--------------------------------------------------
+
+DOCUMENT PROCESSING LAYER
+Recommended libraries:
+- PyMuPDF
+- pdfplumber
+- pypdf
+
+Used for:
+- Extracting text from PDFs
+- Preserving page-level metadata
+- Preparing clean chunks
+
+======================================================================
+6. PRODUCTION-STYLE ARCHITECTURE VIEW
+======================================================================
+
+Frontend / CLI / API
+   ->
+Research Controller API
+   ->
+LangGraph Orchestrator
+   -> Planner Node
+   -> Retrieval Node
+   -> Reranker Node
+   -> Context Builder Node
+   -> Synthesizer Node
+   -> Gap Analysis Node
+   ->
+Service Layer
+   -> Ollama Service
+   -> Embedding Service
+   -> Vector Store Service
+   -> Parser Service
+   ->
+Storage Layer
+   -> Vector DB
+   -> Raw Document Store
+   -> Metadata Store / Cache
+
+======================================================================
+7. INTERVIEW / PRESENTATION VERSION
+======================================================================
+
+Short Architecture Summary:
+
+User Query
+   ->
+Planner Agent
+   ->
+Sub-question Generation
+   ->
+Hybrid Retriever (Semantic + Keyword Search)
+   ->
+Reranker
+   ->
+Context Builder
+   ->
+Synthesizer Agent
+   ->
+Gap Analysis Loop
+   ->
+Final Structured Report with Citations
+
+One-line explanation:
+"The system uses an agentic RAG architecture where a planner decomposes the research problem, a hybrid retriever fetches evidence from the indexed knowledge base, a reranker filters the best context, and a synthesizer generates a cited report, with a gap-analysis loop to improve completeness."
+
+======================================================================
+8. SUGGESTED FOLDER-TO-ARCHITECTURE MAPPING
+======================================================================
+
+project_root/
+|
+|-- app/
+|   |-- main.py
+|   |-- config.py
+|   |-- orchestrator/
+|   |   |-- graph.py
+|   |   |-- state.py
+|   |
+|   |-- agents/
+|   |   |-- planner_agent.py
+|   |   |-- synthesizer_agent.py
+|   |   |-- gap_analysis_agent.py
+|   |
+|   |-- retrieval/
+|   |   |-- retriever.py
+|   |   |-- reranker.py
+|   |   |-- hybrid_search.py
+|   |
+|   |-- ingestion/
+|   |   |-- parser.py
+|   |   |-- chunker.py
+|   |   |-- embedder.py
+|   |   |-- indexer.py
+|   |
+|   |-- vectorstore/
+|   |   |-- chroma_store.py
+|   |
+|   |-- services/
+|   |   |-- ollama_service.py
+|   |   |-- embedding_service.py
+|   |
+|   |-- utils/
+|   |   |-- logging_utils.py
+|   |   |-- metadata_utils.py
+|
+|-- data/
+|   |-- raw/
+|   |-- processed/
+|   |-- vectordb/
+|
+|-- tests/
+|   |-- test_planner.py
+|   |-- test_retrieval.py
+|   |-- test_reranker.py
+|   |-- test_synthesizer.py
+|   |-- test_gap_analysis.py
+|
+|-- README.md
+|-- requirements.txt
+
+======================================================================
+9. FINAL NOTE FOR COPILOT
+======================================================================
+
+This project should be treated as a local-first Autonomous Research Analyst.
+
+Final architectural assumptions:
+- Text generation uses Ollama only
+- Embeddings use HuggingFace sentence-transformers locally
+- Vector store is ChromaDB or FAISS
+- Retrieval is hybrid: semantic + keyword
+- Reranking is applied before synthesis
+- Synthesizer must use only retrieved context
+- Gap analysis may trigger another retrieval loop
+- Final output must be a structured research report with citations
+
+Copilot should preserve this architecture while suggesting:
+- modules
+- refactors
+- tests
+- integrations
+- folder structure
+- orchestration logic
