@@ -44,7 +44,7 @@ OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "mistral")
 OLLAMA_EMBEDDING_MODEL: str = os.getenv("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text")
 OLLAMA_TEMPERATURE: float = float(os.getenv("OLLAMA_TEMPERATURE", "0.25"))
 OLLAMA_TOP_P: float = float(os.getenv("OLLAMA_TOP_P", "0.9"))
-OLLAMA_NUM_CTX: int = int(os.getenv("OLLAMA_NUM_CTX", "4096"))
+OLLAMA_NUM_CTX: int = int(os.getenv("OLLAMA_NUM_CTX", "8192"))
 OLLAMA_TIMEOUT: int = int(os.getenv("OLLAMA_TIMEOUT", "120"))
 
 # ---------------------------------------------------------------------------

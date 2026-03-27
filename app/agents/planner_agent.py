@@ -29,11 +29,13 @@ def _chat(prompt: str, model: str = OLLAMA_MODEL, base_url: str = OLLAMA_BASE_UR
 
 class PlannerAgent:
     """
-    Breaks a research topic into actionable sub-questions.
+    Breaks a research topic into 7 focused academic sub-questions,
+    one per category: definitional, causal, comparative, quantitative,
+    contrarian, procedural, gap_seeking.
 
     Calls Ollama with PLANNER_PROMPT and parses the JSON response.
-    Falls back to simple heuristic sub-questions if the LLM response
-    cannot be parsed.
+    Falls back to heuristic sub-questions if the LLM response cannot
+    be parsed.
     """
 
     def __init__(
@@ -100,15 +102,15 @@ class PlannerAgent:
 
     @staticmethod
     def _heuristic_plan(topic: str) -> List[Dict]:
-        """Generate basic sub-questions when LLM parsing fails."""
+        """Generate academic sub-questions when LLM parsing fails."""
         templates = {
-            "definitional": f"What is {topic} and how is it defined?",
-            "causal": f"What are the root causes or drivers of {topic}?",
-            "comparative": f"How does {topic} compare across different contexts?",
-            "quantitative": f"What are the key metrics and figures related to {topic}?",
-            "contrarian": f"What are the main criticisms or alternative views on {topic}?",
-            "procedural": f"How is {topic} implemented or managed in practice?",
-            "gap_seeking": f"What remains unknown or under-researched about {topic}?",
+            "definitional":  f"How is {topic} defined, classified, or characterised in the literature?",
+            "causal":        f"What mechanisms or variables are identified as causes or drivers of {topic}?",
+            "comparative":   f"How do findings or outcomes related to {topic} differ across studies or populations?",
+            "quantitative":  f"What empirical data or measurable results have been reported for {topic}?",
+            "contrarian":    f"What contradictory evidence or limitations have been identified regarding {topic}?",
+            "procedural":    f"What methodologies or research designs are used to study {topic}?",
+            "gap_seeking":   f"What aspects of {topic} remain under-investigated or unresolved in current research?",
         }
         return [
             {"id": f"q{i+1}", "type": cat, "question": q, "status": "pending"}

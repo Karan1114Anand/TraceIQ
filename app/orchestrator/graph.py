@@ -29,6 +29,7 @@ from app.config.settings import (
     RERANK_TOP_K,
     RRF_K,
     MAX_RESEARCH_ITERATIONS,
+    MIN_CONFIDENCE_SCORE,
 )
 from app.retrieval.hybrid_search import HybridRetriever
 from app.retrieval.reranker import Reranker
@@ -149,7 +150,22 @@ def finalize_node(state: ResearchState) -> ResearchState:
 def _should_loop(state: ResearchState) -> str:
     gap = state.get("gap_result", {})
     iteration = state.get("iteration", 0)
-    if gap.get("has_gaps") and iteration < MAX_RESEARCH_ITERATIONS:
+
+    # Hard cap on iterations
+    if iteration >= MAX_RESEARCH_ITERATIONS:
+        return "finalize"
+
+    # Skip loop if the synthesizer already reported high confidence
+    draft = state.get("draft_report", {})
+    confidence = draft.get("confidence_score", 0.0)
+    if confidence >= MIN_CONFIDENCE_SCORE:
+        logger.info(
+            f"[loop gate] confidence={confidence:.2f} >= threshold={MIN_CONFIDENCE_SCORE} "
+            f"— skipping further retrieval."
+        )
+        return "finalize"
+
+    if gap.get("has_gaps"):
         return "retrieve"
     return "finalize"
 
