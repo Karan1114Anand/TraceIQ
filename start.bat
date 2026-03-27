@@ -1,0 +1,6 @@
+@echo off
+echo Starting TraceIQ backend...
+start cmd /k "uvicorn app.api:app --host 0.0.0.0 --port 8000 --reload"
+timeout /t 2
+echo Opening frontend...
+start frontend\index.html

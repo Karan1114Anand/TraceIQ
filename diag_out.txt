@@ -1,0 +1,6 @@
+Python: 3.12.4 (tags/v3.12.4:8e8a4ba, Jun  6 2024, 19:30:16) [MSC v.1940 64 bit (AMD64)]
+Executable: C:\Users\Dell\AppData\Local\Programs\Python\Python312\python.exe
+fastapi: 0.135.2
+uvicorn: OK
+python-multipart: OK
+app.config.settings: OK (model=mistral)

@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>TraceIQ — Local · Agentic · Cited</title>
+<meta name="description" content="TraceIQ: local-first agentic research analyst with cited reports powered by Ollama and LangGraph."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0D0F1A;--surface:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.08);
+  --accent:#6C63FF;--accent2:#00D4FF;--text:#E8E8F0;--muted:#6B6B8A;
+  --success:#22C55E;--error:#EF4444;--radius:12px;--blur:blur(12px);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;overflow:hidden}
+body{display:grid;grid-template-columns:260px 1fr 300px;grid-template-rows:100vh}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* ---- Card ---- */
+.card{background:var(--surface);backdrop-filter:var(--blur);border:1px solid var(--border);border-radius:var(--radius)}
+
+/* ---- Buttons ---- */
+button{font-family:inherit;cursor:pointer;border:none;outline:none;transition:transform .15s,box-shadow .15s}
+button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 20px rgba(108,99,255,.25)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.btn-accent{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;padding:10px 18px;border-radius:8px;font-weight:600;font-size:13px;width:100%}
+.btn-ghost{background:transparent;color:var(--muted);padding:6px 10px;border-radius:6px;font-size:12px}
+.btn-ghost:hover{color:var(--text);background:var(--surface)}
+
+/* ===== LEFT SIDEBAR ===== */
+#sidebar{padding:20px 16px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;border-right:1px solid var(--border)}
+.wordmark{font-size:22px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.tagline{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* Upload zone */
+#drop-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:24px 16px;text-align:center;cursor:pointer;transition:border-color .2s,box-shadow .2s;color:var(--muted);font-size:12px}
+#drop-zone.dragover{border-color:var(--accent);box-shadow:0 0 0 3px rgba(108,99,255,.2);color:var(--accent)}
+#drop-zone svg{margin-bottom:8px;opacity:.5}
+#file-input{display:none}
+
+/* File cards */
+#file-list{display:flex;flex-direction:column;gap:8px}
+.file-card{padding:10px 12px;display:flex;align-items:center;gap:8px;border-radius:8px;background:var(--surface);border:1px solid var(--border)}
+.file-card .fname{flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chunk-badge{font-size:10px;background:rgba(255,255,255,.08);border-radius:4px;padding:2px 6px;color:var(--muted);white-space:nowrap}
+.chunk-badge.ready{color:var(--accent2)}
+.rm-btn{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 4px;border-radius:4px}
+.rm-btn:hover{color:var(--error);background:rgba(239,68,68,.1)}
+
+/* Divider */
+.divider{height:1px;background:var(--border);margin:4px 0}
+
+/* System status */
+.status-block{display:flex;flex-direction:column;gap:6px}
+.status-row{display:flex;align-items:center;gap:8px;font-size:12px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.dot.green{background:var(--success)}
+.status-label{color:var(--muted);flex:1}
+.status-val{font-size:10px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Spinner */
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== CENTER PANEL ===== */
+#center{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border)}
+
+/* Query bar */
+#query-bar{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;flex-shrink:0}
+#topic-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:var(--text);font-family:inherit;font-size:14px;outline:none;transition:border-color .2s}
+#topic-input:focus{border-color:var(--accent)}
+#topic-input::placeholder{color:var(--muted)}
+#send-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;padding:12px 18px;color:#fff;font-size:18px;cursor:pointer;flex-shrink:0;transition:transform .15s,box-shadow .15s}
+#send-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 20px rgba(108,99,255,.4)}
+#send-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* Scroll area */
+#center-scroll{flex:1;overflow-y:auto;padding:20px}
+
+/* Empty state */
+#empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;color:var(--muted);text-align:center}
+#empty-state p{font-size:14px;max-width:280px;line-height:1.6}
+
+/* Error banner */
+#error-banner{display:none;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;color:var(--error);font-size:13px;display:none;align-items:center;gap:10px}
+#error-banner.show{display:flex}
+#error-banner .err-msg{flex:1}
+
+/* Pipeline tracker */
+#pipeline-wrap{display:none;margin-bottom:20px}
+#pipeline-wrap.show{display:block}
+.pipeline-title{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+#pipeline-track{display:flex;align-items:center;gap:0;overflow-x:auto;padding-bottom:4px}
+.pnode{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:80px;position:relative}
+.pnode:not(:last-child)::after{content:'';position:absolute;right:0;top:14px;width:50%;height:2px;background:var(--border);z-index:0}
+.pnode:not(:last-child).done::after,.pnode:not(:last-child).active::after{background:var(--accent)}
+.p-circle{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:11px;position:relative;z-index:1;transition:border-color .3s,background .3s}
+.pnode.active .p-circle{border-color:var(--accent);background:rgba(108,99,255,.15);animation:pulse 1.5s ease-in-out infinite}
+.pnode.done .p-circle{border-color:var(--success);background:rgba(34,197,94,.12);color:var(--success)}
+.pnode.active .p-circle{color:var(--accent)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(108,99,255,.4)}50%{box-shadow:0 0 0 6px rgba(108,99,255,0)}}
+.p-label{font-size:10px;color:var(--muted);text-align:center}
+.pnode.active .p-label{color:var(--accent)}
+.pnode.done .p-label{color:var(--success)}
+.pnode[data-tip]{cursor:default}
+
+/* Tooltip */
+[data-tip]{position:relative}
+[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#1a1d2e;border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--text);white-space:nowrap;z-index:100;pointer-events:none}
+
+/* Report */
+#report-area{display:none}
+#report-area.show{display:block}
+.report-header{margin-bottom:20px}
+.report-title{font-size:22px;font-weight:700;line-height:1.3;margin-bottom:12px}
+.confidence-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.conf-label{font-size:12px;color:var(--muted);width:90px}
+.conf-bar-bg{flex:1;height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden}
+.conf-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;width:0;transition:width 1s ease}
+.conf-pct{font-size:12px;font-weight:600;width:36px;text-align:right}
+.iter-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;background:rgba(108,99,255,.12);border:1px solid rgba(108,99,255,.3);color:var(--accent);border-radius:20px;padding:3px 10px}
+
+.section-card{margin-bottom:14px;padding:16px;animation:fadeUp .4s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.s-heading{font-size:15px;font-weight:600;margin-bottom:8px}
+.s-content{color:rgba(232,232,240,.8);line-height:1.7;font-size:13px;white-space:pre-wrap}
+
+/* Collapsible */
+.collapsible-btn{display:flex;align-items:center;justify-content:space-between;width:100%;background:transparent;border:none;cursor:pointer;padding:10px 14px;border-radius:8px;color:var(--muted);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.collapsible-btn:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.collapsible-btn .caret{transition:transform .25s}
+.collapsible-btn.open .caret{transform:rotate(180deg)}
+.collapsible-body{max-height:0;overflow:hidden;transition:max-height .35s ease}
+.collapsible-body.open{max-height:600px}
+
+.claim-item{font-size:11px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:6px}
+.claim-item:last-child{border:none}
+.claim-src{background:rgba(0,212,255,.1);color:var(--accent2);border-radius:3px;padding:1px 5px;font-size:10px;white-space:nowrap}
+
+.unanswered-item{font-size:12px;color:var(--muted);padding:5px 0;border-bottom:1px solid var(--border);list-style:none;display:flex;gap:6px;align-items:flex-start}
+.unanswered-item::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+
+.citation-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px}
+.citation-table th{color:var(--muted);font-weight:600;text-align:left;padding:4px 8px;border-bottom:1px solid var(--border)}
+.citation-table td{padding:4px 8px;border-bottom:1px solid rgba(255,255,255,.04);color:rgba(232,232,240,.75)}
+
+.dl-btn{background:rgba(108,99,255,.1);border:1px solid rgba(108,99,255,.3);color:var(--accent);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;margin-top:14px;cursor:pointer;transition:background .2s,transform .15s,box-shadow .15s}
+.dl-btn:hover{background:rgba(108,99,255,.2);transform:translateY(-1px);box-shadow:0 4px 20px rgba(108,99,255,.25)}
+
+/* ===== RIGHT PANEL ===== */
+#right{display:flex;flex-direction:column;overflow:hidden;position:relative;transition:width .35s ease;width:300px}
+#right.collapsed{width:0;overflow:hidden}
+#toggle-right{position:absolute;left:-14px;top:50%;transform:translateY(-50%);z-index:10;width:28px;height:28px;background:var(--surface);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:12px;transition:background .2s}
+#toggle-right:hover{background:rgba(108,99,255,.15);color:var(--accent)}
+#right-inner{padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;height:100%}
+.panel-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px}
+
+/* Sub-questions */
+.sq-card{padding:10px 12px;border-radius:8px;background:var(--surface);border:1px solid var(--border);margin-bottom:8px}
+.sq-header{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.sq-type{font-size:10px;border-radius:4px;padding:2px 6px;font-weight:600}
+.type-definitional{background:rgba(108,99,255,.15);color:#a09eff}
+.type-causal{background:rgba(239,168,68,.12);color:#f4a64a}
+.type-comparative{background:rgba(0,212,255,.1);color:var(--accent2)}
+.type-quantitative{background:rgba(34,197,94,.1);color:var(--success)}
+.type-contrarian{background:rgba(239,68,68,.1);color:var(--error)}
+.type-procedural{background:rgba(168,85,247,.12);color:#c084fc}
+.type-gap_seeking{background:rgba(245,158,11,.1);color:#fbbf24}
+.sq-status{margin-left:auto;font-size:10px;border-radius:10px;padding:2px 7px}
+.sq-status.answered{background:rgba(34,197,94,.12);color:var(--success)}
+.sq-status.pending{background:rgba(107,107,138,.12);color:var(--muted)}
+.sq-text{font-size:12px;color:var(--text);line-height:1.5}
+
+/* Gap analysis */
+.gap-block{display:flex;flex-direction:column;gap:8px}
+.gap-indicator{display:flex;align-items:center;gap:6px;font-size:12px}
+.gap-dot{width:8px;height:8px;border-radius:50%}
+.gap-dot.red{background:var(--error)}
+.gap-dot.green{background:var(--success)}
+.rec-badge{font-size:11px;border-radius:6px;padding:3px 8px;background:rgba(255,255,255,.06);color:var(--muted)}
+.gap-item{font-size:11px;color:var(--muted);padding:6px 8px;border-radius:6px;background:rgba(255,255,255,.03);border:1px solid var(--border);margin-bottom:4px}
+.gap-item .fq{font-size:10px;color:var(--accent);margin-top:3px}
+
+/* ===== TOASTS ===== */
+#toast-container{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:999}
+.toast{padding:10px 16px;border-radius:10px;font-size:13px;backdrop-filter:var(--blur);border:1px solid var(--border);animation:slideIn .3s ease;display:flex;align-items:center;gap:8px;max-width:300px}
+.toast.success{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.3);color:#4ade80}
+.toast.error{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#f87171}
+.toast.info{background:rgba(108,99,255,.15);border-color:rgba(108,99,255,.3);color:#a09eff}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(20px)}}
+</style>
+</head>
+<body>
+
+<!-- ===== LEFT SIDEBAR ===== -->
+<aside id="sidebar">
+  <div>
+    <div class="wordmark">TraceIQ</div>
+    <div class="tagline">Local · Agentic · Cited</div>
+  </div>
+
+  <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    <div>Drop files here or <strong>click to browse</strong></div>
+    <div style="margin-top:4px;font-size:11px">PDF · DOCX · PPTX · CSV · XLSX</div>
+    <input type="file" id="file-input" multiple accept=".pdf,.docx,.pptx,.csv,.xlsx"/>
+  </div>
+
+  <div id="file-list"></div>
+
+  <button class="btn-accent" id="index-btn" onclick="handleIndex()">
+    <span id="index-label">Index Documents</span>
+  </button>
+
+  <div class="divider"></div>
+
+  <div class="status-block">
+    <div class="panel-title">System Status</div>
+    <div class="status-row">
+      <div class="dot" id="dot-llm"></div>
+      <span class="status-label">LLM (Ollama)</span>
+      <span class="status-val" id="val-llm">—</span>
+    </div>
+    <div class="status-row">
+      <div class="dot" id="dot-emb"></div>
+      <span class="status-label">Embeddings (HF)</span>
+      <span class="status-val" id="val-emb">—</span>
+    </div>
+    <div class="status-row">
+      <div class="dot" id="dot-chroma"></div>
+      <span class="status-label">ChromaDB</span>
+      <span class="status-val" id="val-chroma">—</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ===== CENTER PANEL ===== -->
+<main id="center">
+  <div id="query-bar">
+    <input id="topic-input" type="text" placeholder="Ask a research question…" onkeydown="if(event.key==='Enter')handleResearch()"/>
+    <button id="send-btn" onclick="handleResearch()" title="Run research">→</button>
+  </div>
+
+  <div id="center-scroll">
+    <!-- Error banner -->
+    <div id="error-banner">
+      <span class="err-msg" id="err-msg-text"></span>
+      <button class="btn-ghost" onclick="hideError()">✕</button>
+    </div>
+
+    <!-- Pipeline tracker -->
+    <div id="pipeline-wrap">
+      <div class="pipeline-title">Research Pipeline</div>
+      <div id="pipeline-track"></div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="empty-state">
+      <svg width="72" height="72" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="40" cy="40" r="38" stroke="rgba(108,99,255,0.2)" stroke-width="2"/>
+        <path d="M25 30 Q30 20 40 22 Q50 20 55 30 Q62 42 55 52 Q48 60 40 58 Q32 60 25 52 Q18 42 25 30Z" stroke="rgba(108,99,255,0.4)" stroke-width="1.5" fill="rgba(108,99,255,0.05)"/>
+        <circle cx="33" cy="36" r="3" fill="rgba(0,212,255,0.5)"/>
+        <circle cx="47" cy="36" r="3" fill="rgba(0,212,255,0.5)"/>
+        <path d="M32 46 Q40 52 48 46" stroke="rgba(108,99,255,0.6)" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <path d="M14 14 L22 22 M66 14 L58 22 M40 8 L40 16" stroke="rgba(108,99,255,0.25)" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <p>Upload documents and ask a question to begin</p>
+    </div>
+
+    <!-- Report area -->
+    <div id="report-area"></div>
+  </div>
+</main>
+
+<!-- ===== RIGHT PANEL ===== -->
+<aside id="right">
+  <button id="toggle-right" onclick="toggleRight()" title="Toggle panel">◀</button>
+  <div id="right-inner">
+    <div>
+      <div class="panel-title">Sub-Questions</div>
+      <div id="sq-list"><span style="font-size:12px;color:var(--muted)">Run a query to see sub-questions</span></div>
+    </div>
+    <div class="divider"></div>
+    <div>
+      <div class="panel-title">Gap Analysis</div>
+      <div id="gap-block"><span style="font-size:12px;color:var(--muted)">No results yet</span></div>
+    </div>
+  </div>
+</aside>
+
+<div id="toast-container"></div>
+
+<script>
+const API = 'http://localhost:8000';
+
+// ─── API Helpers ────────────────────────────────────────────────────────────
+async function apiUpload(files){
+  const form=new FormData();
+  files.forEach(f=>form.append('files',f));
+  const r=await fetch(`${API}/upload`,{method:'POST',body:form});
+  if(!r.ok)throw new Error(await r.text());
+  return r.json();
+}
+async function apiIndex(filenames=[]){
+  const r=await fetch(`${API}/index`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filenames})});
+  if(!r.ok)throw new Error(await r.text());
+  return r.json();
+}
+async function apiResearch(topic){
+  const r=await fetch(`${API}/research`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic})});
+  if(!r.ok){const e=await r.json();throw new Error(e.detail||'Research failed');}
+  return r.json();
+}
+async function apiStatus(){
+  const r=await fetch(`${API}/status`);
+  return r.json();
+}
+async function apiDeleteFile(filename){
+  const r=await fetch(`${API}/uploads/${encodeURIComponent(filename)}`,{method:'DELETE'});
+  return r.json();
+}
+
+// ─── State ──────────────────────────────────────────────────────────────────
+let uploadedFiles={};  // filename -> {chunkCount}
+let rightCollapsed=false;
+let researchRunning=false;
+let pipelineTimer=null;
+let lastState=null;
+
+// ─── Toast ───────────────────────────────────────────────────────────────────
+function toast(msg,type='info'){
+  const c=document.getElementById('toast-container');
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;
+  const icons={success:'✓',error:'✕',info:'ℹ'};
+  t.innerHTML=`<span>${icons[type]||'ℹ'}</span><span>${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(()=>{t.style.animation='slideOut .3s ease forwards';setTimeout(()=>t.remove(),300);},4000);
+}
+
+// ─── Error Banner ────────────────────────────────────────────────────────────
+function showError(msg){
+  const b=document.getElementById('error-banner');
+  document.getElementById('err-msg-text').textContent=msg;
+  b.classList.add('show');
+}
+function hideError(){
+  document.getElementById('error-banner').classList.remove('show');
+}
+
+// ─── File Cards ──────────────────────────────────────────────────────────────
+function renderFileList(){
+  const fl=document.getElementById('file-list');
+  fl.innerHTML='';
+  Object.entries(uploadedFiles).forEach(([name,info])=>{
+    const d=document.createElement('div');
+    d.className='file-card';
+    d.id=`fc-${CSS.escape(name)}`;
+    const chunks=info.chunkCount!=null?info.chunkCount:null;
+    const badge=chunks!=null?`<span class="chunk-badge ready">${chunks} chunks</span>`:`<span class="chunk-badge">—</span>`;
+    d.innerHTML=`<span class="fname" title="${name}">${name}</span>${badge}<button class="rm-btn" onclick="removeFile('${name.replace(/'/g,"\\'")}')">✕</button>`;
+    fl.appendChild(d);
+  });
+}
+
+async function removeFile(name){
+  try{
+    await apiDeleteFile(name);
+    delete uploadedFiles[name];
+    renderFileList();
+    toast(`Removed ${name}`,'info');
+  }catch(e){
+    toast(`Error removing: ${e.message}`,'error');
+  }
+}
+
+// ─── Upload ───────────────────────────────────────────────────────────────────
+async function handleUpload(files){
+  if(!files||files.length===0)return;
+  try{
+    const res=await apiUpload(Array.from(files));
+    res.uploaded.forEach(name=>{uploadedFiles[name]={chunkCount:null};});
+    renderFileList();
+    toast(`${res.uploaded.length} file(s) uploaded`,'success');
+  }catch(e){
+    toast(`Upload error: ${e.message}`,'error');
+  }
+}
+
+const dropZone=document.getElementById('drop-zone');
+const fileInput=document.getElementById('file-input');
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('dragover');});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('dragover');handleUpload(e.dataTransfer.files);});
+fileInput.addEventListener('change',()=>{handleUpload(fileInput.files);fileInput.value='';});
+
+// ─── Index ────────────────────────────────────────────────────────────────────
+async function handleIndex(){
+  const btn=document.getElementById('index-btn');
+  const lbl=document.getElementById('index-label');
+  btn.disabled=true;
+  lbl.innerHTML='<span class="spin"></span>Indexing…';
+  try{
+    const filenames=Object.keys(uploadedFiles);
+    const res=await apiIndex(filenames);
+    let total=0;
+    Object.entries(res.indexed).forEach(([name,count])=>{
+      if(uploadedFiles[name])uploadedFiles[name].chunkCount=count;
+      total+=count;
+    });
+    renderFileList();
+    toast(`Indexed ${total} chunks across ${Object.keys(res.indexed).length} files`,'success');
+  }catch(e){
+    toast(`Index error: ${e.message}`,'error');
+  }finally{
+    btn.disabled=false;
+    lbl.textContent='Index Documents';
+  }
+}
+
+// ─── Pipeline Tracker ─────────────────────────────────────────────────────────
+const PIPELINE_NODES=[
+  {id:'planner',label:'Planner',tip:'Decomposes your question into sub-questions'},
+  {id:'retrieval',label:'Retrieval',tip:'Hybrid semantic + keyword search via RRF'},
+  {id:'reranker',label:'Reranker',tip:'Scores and filters top evidence chunks'},
+  {id:'context',label:'Context Builder',tip:'Applies token budget and citation labels'},
+  {id:'synth',label:'Synthesizer',tip:'Generates structured report via local LLM'},
+  {id:'gap',label:'Gap Analysis',tip:'Checks coverage, loops back if needed'},
+  {id:'report',label:'Report',tip:'Finalizes and structures the output'},
+];
+let pipelineStep=0;
+
+function buildPipeline(){
+  const track=document.getElementById('pipeline-track');
+  track.innerHTML='';
+  PIPELINE_NODES.forEach(n=>{
+    const el=document.createElement('div');
+    el.className='pnode';el.id=`pn-${n.id}`;
+    el.setAttribute('data-tip',n.tip);
+    el.innerHTML=`<div class="p-circle">◯</div><div class="p-label">${n.label}</div>`;
+    track.appendChild(el);
+  });
+}
+
+function setPipelineStep(step){
+  PIPELINE_NODES.forEach((n,i)=>{
+    const el=document.getElementById(`pn-${n.id}`);
+    if(!el)return;
+    el.className='pnode';
+    const circle=el.querySelector('.p-circle');
+    if(i<step){el.classList.add('done');circle.textContent='✓';}
+    else if(i===step){el.classList.add('active');circle.textContent='◉';}
+    else{circle.textContent='◯';}
+  });
+}
+
+function startPipelineAnimation(){
+  pipelineStep=0;
+  buildPipeline();
+  document.getElementById('pipeline-wrap').classList.add('show');
+  setPipelineStep(0);
+  pipelineTimer=setInterval(()=>{
+    if(pipelineStep<PIPELINE_NODES.length-1){pipelineStep++;setPipelineStep(pipelineStep);}
+  },1500);
+}
+
+function completePipeline(){
+  if(pipelineTimer){clearInterval(pipelineTimer);pipelineTimer=null;}
+  PIPELINE_NODES.forEach(n=>{
+    const el=document.getElementById(`pn-${n.id}`);
+    if(el){el.className='pnode done';el.querySelector('.p-circle').textContent='✓';}
+  });
+}
+
+// ─── Research ─────────────────────────────────────────────────────────────────
+async function handleResearch(){
+  if(researchRunning)return;
+  const topic=document.getElementById('topic-input').value.trim();
+  if(!topic){toast('Please enter a research question','error');return;}
+  researchRunning=true;
+  document.getElementById('send-btn').disabled=true;
+  document.getElementById('topic-input').disabled=true;
+  document.getElementById('empty-state').style.display='none';
+  document.getElementById('report-area').classList.remove('show');
+  document.getElementById('report-area').innerHTML='';
+  hideError();
+  startPipelineAnimation();
+  try{
+    const state=await apiResearch(topic);
+    lastState=state;
+    completePipeline();
+    renderReport(topic,state);
+    renderSidePanel(state);
+  }catch(e){
+    completePipeline();
+    showError(e.message);
+    toast(e.message,'error');
+  }finally{
+    researchRunning=false;
+    document.getElementById('send-btn').disabled=false;
+    document.getElementById('topic-input').disabled=false;
+  }
+}
+
+// ─── Collapsible ─────────────────────────────────────────────────────────────
+function makeCollapsible(title,content){
+  const wrap=document.createElement('div');
+  wrap.style.marginTop='10px';
+  const btn=document.createElement('button');
+  btn.className='collapsible-btn';
+  btn.innerHTML=`<span>${title}</span><span class="caret">▾</span>`;
+  const body=document.createElement('div');
+  body.className='collapsible-body';
+  body.appendChild(content);
+  btn.onclick=()=>{btn.classList.toggle('open');body.classList.toggle('open');};
+  wrap.appendChild(btn);wrap.appendChild(body);
+  return wrap;
+}
+
+// ─── Report Renderer ──────────────────────────────────────────────────────────
+function renderReport(topic,state){
+  const area=document.getElementById('report-area');
+  area.innerHTML='';
+  const report=state.final_report||{};
+
+  // Header
+  const hdr=document.createElement('div');
+  hdr.className='report-header';
+  const conf=report.confidence_score||0;
+  const iter=state.iteration||0;
+  hdr.innerHTML=`
+    <div class="report-title">${report.title||topic}</div>
+    <div class="confidence-row">
+      <span class="conf-label">Confidence</span>
+      <div class="conf-bar-bg"><div class="conf-bar-fill" id="conf-fill"></div></div>
+      <span class="conf-pct" id="conf-pct">0%</span>
+    </div>
+    <span class="iter-badge">🔁 ${iter} research loop${iter!==1?'s':''}</span>`;
+  area.appendChild(hdr);
+
+  // Animate confidence
+  setTimeout(()=>{
+    const fill=document.getElementById('conf-fill');
+    const pct=document.getElementById('conf-pct');
+    if(fill){fill.style.width=`${Math.round(conf*100)}%`;pct.textContent=`${Math.round(conf*100)}%`;}
+  },100);
+
+  // Sections
+  const sections=report.sections||[];
+  sections.forEach((sec,i)=>{
+    const sc=document.createElement('div');
+    sc.className='section-card card';
+    sc.style.animationDelay=`${i*80}ms`;
+    // Claims
+    let claimsHtml='';
+    if(sec.claims&&sec.claims.length){
+      const claimsDiv=document.createElement('div');
+      claimsDiv.style.padding='8px 12px';
+      sec.claims.forEach(c=>{
+        const ci=document.createElement('div');
+        ci.className='claim-item';
+        const srcs=(c.source_chunks||[]).map(s=>`<span class="claim-src">${s}</span>`).join(' ');
+        ci.innerHTML=`<span style="flex:1">${c.claim}</span>${srcs}`;
+        claimsDiv.appendChild(ci);
+      });
+      const cc=makeCollapsible(`📎 Cited Claims (${sec.claims.length})`,claimsDiv);
+      claimsHtml=cc.outerHTML;
+    }
+    sc.innerHTML=`<div class="s-heading">${sec.heading}</div><div class="s-content">${sec.content}</div>`;
+    if(sec.claims&&sec.claims.length){
+      const cd=document.createElement('div');cd.style.padding='8px 12px';
+      sec.claims.forEach(c=>{
+        const ci=document.createElement('div');ci.className='claim-item';
+        const srcs=(c.source_chunks||[]).map(s=>`<span class="claim-src">${s}</span>`).join(' ');
+        ci.innerHTML=`<span style="flex:1">${c.claim}</span>${srcs}`;cd.appendChild(ci);
+      });
+      sc.appendChild(makeCollapsible(`📎 Cited Claims (${sec.claims.length})`,cd));
+    }
+    area.appendChild(sc);
+  });
+
+  // Unanswered questions
+  const uq=report.unanswered_questions||[];
+  if(uq.length){
+    const ul=document.createElement('ul');ul.style.listStyle='none';ul.style.padding='8px 12px';
+    uq.forEach(q=>{const li=document.createElement('li');li.className='unanswered-item';li.textContent=q;ul.appendChild(li);});
+    area.appendChild(makeCollapsible(`❓ Unanswered Questions (${uq.length})`,ul));
+  }
+
+  // Citation map
+  const cm=report.citation_map||{};
+  const cmKeys=Object.keys(cm);
+  if(cmKeys.length){
+    const tbl=document.createElement('table');tbl.className='citation-table';
+    tbl.innerHTML=`<thead><tr><th>Chunk ID</th><th>Source</th><th>Page</th></tr></thead>`;
+    const tb=document.createElement('tbody');
+    cmKeys.forEach(k=>{
+      const v=cm[k];const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${k}</td><td>${v.source||'—'}</td><td>${v.page||'—'}</td>`;
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb);
+    const cw=document.createElement('div');cw.style.padding='8px 12px';cw.appendChild(tbl);
+    area.appendChild(makeCollapsible(`🔗 Citation Map (${cmKeys.length})`,cw));
+  }
+
+  // Download button
+  const dl=document.createElement('button');
+  dl.className='dl-btn';
+  dl.textContent='⬇ Download JSON';
+  dl.onclick=()=>{
+    const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;
+    a.download=`traceiq_${Date.now()}.json`;a.click();
+    URL.revokeObjectURL(url);
+  };
+  area.appendChild(dl);
+
+  area.classList.add('show');
+}
+
+// ─── Side Panel ───────────────────────────────────────────────────────────────
+function renderSidePanel(state){
+  // Sub-questions
+  const sqList=document.getElementById('sq-list');
+  sqList.innerHTML='';
+  const sqs=state.sub_questions||[];
+  if(!sqs.length){sqList.innerHTML='<span style="font-size:12px;color:var(--muted)">No sub-questions returned</span>';}
+  sqs.forEach(sq=>{
+    const type=sq.type||'unknown';
+    const cls=`type-${type}`;
+    const statusCls=sq.status==='answered'?'answered':'pending';
+    const card=document.createElement('div');card.className='sq-card';
+    card.innerHTML=`
+      <div class="sq-header">
+        <span class="sq-type ${cls}">${type}</span>
+        <span class="sq-status ${statusCls}">${sq.status||'pending'}</span>
+      </div>
+      <div class="sq-text">${sq.question||''}</div>`;
+    sqList.appendChild(card);
+  });
+
+  // Gap analysis
+  const gapBlock=document.getElementById('gap-block');
+  gapBlock.innerHTML='';
+  const gr=state.gap_result||{};
+  if(!Object.keys(gr).length){gapBlock.innerHTML='<span style="font-size:12px;color:var(--muted)">No gap analysis data</span>';return;}
+  const hasGaps=gr.has_gaps;
+  const dotCls=hasGaps?'red':'green';
+  const gapHtml=document.createElement('div');gapHtml.className='gap-block';
+  gapHtml.innerHTML=`
+    <div class="gap-indicator"><div class="gap-dot ${dotCls}"></div><span style="font-size:12px">${hasGaps?'Gaps detected':'No gaps detected'}</span></div>
+    ${gr.recommendation?`<span class="rec-badge">${gr.recommendation}</span>`:''}`;
+  const details=gr.gap_details||[];
+  details.forEach(d=>{
+    const di=document.createElement('div');di.className='gap-item';
+    di.innerHTML=`<div>Q-${d.q_id}: ${d.status||''}</div>${d.follow_up_query?`<div class="fq">↳ ${d.follow_up_query}</div>`:''}`;
+    gapHtml.appendChild(di);
+  });
+  gapBlock.appendChild(gapHtml);
+}
+
+// ─── Right Panel Toggle ───────────────────────────────────────────────────────
+function toggleRight(){
+  const panel=document.getElementById('right');
+  const btn=document.getElementById('toggle-right');
+  rightCollapsed=!rightCollapsed;
+  panel.classList.toggle('collapsed',rightCollapsed);
+  btn.textContent=rightCollapsed?'▶':'◀';
+}
+
+// ─── Status Load ──────────────────────────────────────────────────────────────
+async function loadStatus(){
+  try{
+    const s=await apiStatus();
+    document.getElementById('val-llm').textContent=s.ollama_model||'—';
+    document.getElementById('val-emb').textContent=(s.embedding_model||'').split('/').pop();
+    document.getElementById('val-chroma').textContent=s.chroma_collection||'—';
+    document.getElementById('dot-llm').classList.add('green');
+    document.getElementById('dot-emb').classList.add('green');
+    document.getElementById('dot-chroma').classList.add('green');
+    // Populate already-uploaded files
+    const files=s.indexed_files||[];
+    files.forEach(f=>{if(!uploadedFiles[f])uploadedFiles[f]={chunkCount:null};});
+    renderFileList();
+  }catch(e){
+    console.warn('Status load failed:',e.message);
+  }
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+loadStatus();
+</script>
+</body>
+</html>
