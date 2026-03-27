@@ -93,7 +93,7 @@ class DOCXParser:
             text_parts: List[str] = []
             for para in doc.paragraphs:
                 if para.text.strip():
-                    if para.style.name.startswith("Heading"):
+                    if para.style and para.style.name and para.style.name.startswith("Heading"):
                         lvl = para.style.name.replace("Heading ", "")
                         hashes = "#" * (int(lvl) if lvl.isdigit() else 1)
                         text_parts.append(f"\n{hashes} {para.text}\n")

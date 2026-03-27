@@ -74,7 +74,7 @@ RRF_K: int = int(os.getenv("RRF_K", "60"))          # plain RRF constant
 # ---------------------------------------------------------------------------
 MAX_RESEARCH_ITERATIONS: int = int(os.getenv("MAX_RESEARCH_ITERATIONS", "3"))
 MIN_CONFIDENCE_SCORE: float = float(os.getenv("MIN_CONFIDENCE_SCORE", "0.7"))
-CONTEXT_TOKEN_BUDGET: int = int(os.getenv("CONTEXT_TOKEN_BUDGET", "3000"))
+CONTEXT_TOKEN_BUDGET: int = int(os.getenv("CONTEXT_TOKEN_BUDGET", "6000"))
 
 # ---------------------------------------------------------------------------
 # Chunking
