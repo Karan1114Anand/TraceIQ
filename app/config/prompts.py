@@ -10,42 +10,31 @@ Citation format enforced end-to-end: [CIT:source_name:chunk_id:page]
 # One focused question per category (7 total) to keep retrieval fast.
 # ---------------------------------------------------------------------------
 PLANNER_PROMPT = """\
-You are an expert academic research analyst.
+You are an expert research analyst.
 
-Given a research topic, generate exactly ONE focused sub-question for each of
-these 7 categories:
+Given a research topic, generate exactly 3 broad, comprehensive sub-questions
+that together provide complete coverage of the topic.
 
-- definitional:  How is the core concept defined, classified, or characterised
-                 in the literature?
-- causal:        What mechanisms, variables, or processes cause or influence X?
-- comparative:   How do findings, methods, or outcomes differ across studies,
-                 populations, or conditions?
-- quantitative:  What empirical data, statistics, or measurable results are
-                 reported for X?
-- contrarian:    What contradictory evidence, limitations, or dissenting views
-                 exist in the literature?
-- procedural:    What methodologies, protocols, or experimental designs are
-                 used to study X?
-- gap_seeking:   What aspects of X remain under-investigated, contested, or
-                 unresolved in current research?
+Use these 3 angles:
+- foundations:    What is it, how does it work, and what are its core principles
+                  and mechanisms?
+- applications:   What are its proven uses, benefits, limitations, and how does
+                  it compare to alternatives?
+- frontiers:      What challenges, open problems, and future directions exist?
 
 Topic: {topic}
 
 Rules:
-- Generate exactly 1 question per category (7 questions total)
-- Each question must be specific and directly answerable from research documents
-- Use precise academic language; avoid business or market framing
-- Do not repeat or overlap questions across categories
+- Generate exactly 3 questions (one per angle above)
+- Each question should be broad enough to elicit a detailed multi-paragraph answer
+- Questions must be directly answerable from research documents
+- Do not repeat or overlap questions
 
 Return ONLY valid JSON, no preamble, no explanation:
 [
-  {{"id": "q1", "type": "definitional", "question": "...", "status": "pending"}},
-  {{"id": "q2", "type": "causal",       "question": "...", "status": "pending"}},
-  {{"id": "q3", "type": "comparative",  "question": "...", "status": "pending"}},
-  {{"id": "q4", "type": "quantitative", "question": "...", "status": "pending"}},
-  {{"id": "q5", "type": "contrarian",   "question": "...", "status": "pending"}},
-  {{"id": "q6", "type": "procedural",   "question": "...", "status": "pending"}},
-  {{"id": "q7", "type": "gap_seeking",  "question": "...", "status": "pending"}}
+  {{"id": "q1", "type": "foundations",   "question": "...", "status": "pending"}},
+  {{"id": "q2", "type": "applications",  "question": "...", "status": "pending"}},
+  {{"id": "q3", "type": "frontiers",     "question": "...", "status": "pending"}}
 ]
 """
 
@@ -54,43 +43,44 @@ Return ONLY valid JSON, no preamble, no explanation:
 # Citation format: [CIT:source_name:chunk_id:page]
 # ---------------------------------------------------------------------------
 SYNTHESIZER_PROMPT = """\
-You are a rigorous academic research analyst synthesising findings from \
-retrieved literature.
+You are a knowledgeable research assistant. Using ONLY the provided context,
+write a detailed, thorough answer to each sub-question.
 
-STRICT RULES:
-1. Use ONLY the provided context below. Never introduce external knowledge.
-2. Every factual claim MUST be supported by a citation label in exactly this
-   format: [CIT:source_name:chunk_id:page]
-   Use the exact labels that appear at the start of each context chunk.
-3. If a sub-question cannot be answered from the available context, write:
-   "Insufficient evidence: <question_text>"
-4. Write in clear, concise academic prose. Avoid speculative or hedging language
-   unless directly supported by the source.
-5. Output must be exactly the JSON structure below — no preamble, no markdown.
+RULES:
+1. Use ONLY information from the provided context. Never add external knowledge.
+2. Cite sources inline immediately after the relevant sentence using the exact
+   label format from the context: [CIT:source_name:chunk_id:page]
+3. Write 2-4 detailed paragraphs per section. Be thorough and explain concepts
+   clearly, as if explaining to someone genuinely curious about the topic.
+4. If a question cannot be answered from the available context, write one natural
+   sentence acknowledging this, e.g. "The available documents do not cover this
+   aspect in detail."
+5. Use clear, natural headings — not academic category labels.
+6. Output must be valid JSON exactly as shown. No preamble, no markdown fences.
 
 Sub-questions to address:
 {sub_questions}
 
-Context (each chunk is labelled [CIT:source_name:chunk_id:page]):
+Context (each chunk starts with its label [CIT:source_name:chunk_id:page]):
 {context}
 
-Output (valid JSON only, no preamble):
+Output (valid JSON only):
 {{
   "report": {{
-    "title": "Research Synthesis: <topic>",
+    "title": "<concise descriptive title for this topic>",
     "sections": [
       {{
-        "heading": "<section_heading_matching_a_sub_question_type>",
-        "content": "<grounded academic prose with inline [CIT:...] labels>",
+        "heading": "<clear natural section heading>",
+        "content": "<2-4 detailed paragraphs with inline [CIT:...] citations after each supported sentence>",
         "claims": [
           {{
-            "claim": "<one specific, verifiable claim>",
-            "source_chunks": ["chunk_id_1", "chunk_id_2"]
+            "claim": "<one specific verifiable claim from this section>",
+            "source_chunks": ["chunk_id_1"]
           }}
         ]
       }}
     ],
-    "unanswered_questions": ["<question text for any sub-question with no evidence>"],
+    "unanswered_questions": [],
     "confidence_score": 0.85
   }}
 }}

@@ -21,7 +21,11 @@ from app.config.prompts import SYNTHESIZER_PROMPT
 
 def _chat(prompt: str, model: str = OLLAMA_MODEL, base_url: str = OLLAMA_BASE_URL) -> str:
     client = ollama.Client(host=base_url)
-    response = client.chat(model=model, messages=[{"role": "user", "content": prompt}])
+    response = client.chat(
+        model=model,
+        messages=[{"role": "user", "content": prompt}],
+        options={"num_predict": 4096, "temperature": 0.3},
+    )
     return response["message"]["content"].strip()
 
 

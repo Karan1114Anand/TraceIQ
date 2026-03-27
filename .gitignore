@@ -1,4 +1,4 @@
-# --- Python ---
+# ── Python ────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
@@ -10,44 +10,46 @@ dist/
 build/
 .eggs/
 
-# --- Virtual environments ---
+# ── Virtual environments ───────────────────────────────────
 .venv/
 venv/
 env/
 ENV/
 .env.local
 
-# --- Environment / secrets ---
+# ── Environment / secrets ──────────────────────────────────
 .env
 !.env.example
 
-# --- Jupyter ---
+# ── Jupyter ────────────────────────────────────────────────
 .ipynb_checkpoints/
-*.ipynb_checkpoints
+*.ipynb
 
-# --- Generated data (do NOT commit) ---
-data/chroma_db/
-data/uploads/
-outputs/
-logs/
+# ── OS ─────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
 
-# --- IDE ---
+# ── IDE ────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
-.DS_Store
-Thumbs.db
 
-# --- Kiro / tool caches ---
-.kiro/
+# ── Runtime data (empty dirs tracked via .gitkeep) ─────────
+data/uploads/*
+!data/uploads/.gitkeep
+data/chroma_db/*
+!data/chroma_db/.gitkeep
+outputs/*
+!outputs/.gitkeep
+logs/*
+!logs/.gitkeep
 
-# --- Streamlit cache ---
-.streamlit/
+# ── BM25 index (regenerated on first run) ──────────────────
+data/bm25_index.pkl
 
-# --- Model caches ---
-*.bin
-*.safetensors
-*.ot
-sentence_transformers_cache/
-huggingface_cache/
+# ── Test artifacts ─────────────────────────────────────────
+.pytest_cache/
+htmlcov/
+.coverage

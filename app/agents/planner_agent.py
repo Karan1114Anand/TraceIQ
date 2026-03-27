@@ -17,7 +17,7 @@ from loguru import logger
 from app.config.settings import OLLAMA_MODEL, OLLAMA_BASE_URL
 from app.config.prompts import PLANNER_PROMPT
 
-_CATEGORIES = ["definitional", "causal", "comparative", "quantitative", "contrarian", "procedural", "gap_seeking"]
+_CATEGORIES = ["foundations", "applications", "frontiers"]
 
 
 def _chat(prompt: str, model: str = OLLAMA_MODEL, base_url: str = OLLAMA_BASE_URL) -> str:
@@ -102,15 +102,11 @@ class PlannerAgent:
 
     @staticmethod
     def _heuristic_plan(topic: str) -> List[Dict]:
-        """Generate academic sub-questions when LLM parsing fails."""
+        """Generate broad sub-questions when LLM parsing fails."""
         templates = {
-            "definitional":  f"How is {topic} defined, classified, or characterised in the literature?",
-            "causal":        f"What mechanisms or variables are identified as causes or drivers of {topic}?",
-            "comparative":   f"How do findings or outcomes related to {topic} differ across studies or populations?",
-            "quantitative":  f"What empirical data or measurable results have been reported for {topic}?",
-            "contrarian":    f"What contradictory evidence or limitations have been identified regarding {topic}?",
-            "procedural":    f"What methodologies or research designs are used to study {topic}?",
-            "gap_seeking":   f"What aspects of {topic} remain under-investigated or unresolved in current research?",
+            "foundations":  f"What is {topic}, how does it work, and what are its core principles and mechanisms?",
+            "applications": f"What are the proven uses, benefits, and limitations of {topic}, and how does it compare to alternatives?",
+            "frontiers":    f"What are the current challenges, open problems, and future directions in {topic}?",
         }
         return [
             {"id": f"q{i+1}", "type": cat, "question": q, "status": "pending"}

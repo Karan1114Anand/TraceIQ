@@ -73,7 +73,7 @@ from app.config.settings import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("[TraceIQ] 🚀  API server started — http://localhost:8000")
+    print("[TraceIQ] API server started -- http://localhost:8000")
     yield
     print("[TraceIQ] API server shutting down.")
 
@@ -239,6 +239,123 @@ async def run_research(req: ResearchRequest):
         return json.loads(json.dumps(final_state, default=str))
     except Exception:
         return {"status": final_state.get("status"), "error": "Result serialisation failed"}
+
+
+@app.post("/research/stream")
+async def stream_research(req: ResearchRequest):
+    """
+    Execute the research pipeline and stream real-time progress via SSE.
+    Each pipeline node emits an event when it starts and when it completes.
+    """
+    from fastapi.responses import StreamingResponse as _SR
+
+    topic = (req.topic or "").strip()
+    if not topic:
+        raise HTTPException(status_code=422, detail="topic must be a non-empty string")
+
+    queue: asyncio.Queue = asyncio.Queue()
+    loop = asyncio.get_running_loop()
+
+    NODE_TO_STAGE = {
+        "plan": "planner",
+        "retrieve": "retrieval",
+        "rerank": "reranker",
+        "build_context": "context",
+        "synthesize": "synth",
+        "analyze_gaps": "gap",
+        "finalize": "report",
+    }
+    NEXT_NODE = {
+        "plan": "retrieve",
+        "retrieve": "rerank",
+        "rerank": "build_context",
+        "build_context": "synthesize",
+        "synthesize": "analyze_gaps",
+    }
+
+    def _emit(data: dict) -> None:
+        loop.call_soon_threadsafe(queue.put_nowait, data)
+
+    def _run() -> None:
+        try:
+            from app.orchestrator.graph import build_graph
+            from app.config.settings import MAX_RESEARCH_ITERATIONS, MIN_CONFIDENCE_SCORE
+
+            graph = build_graph()
+            initial_state = {
+                "topic": topic,
+                "sub_questions": [],
+                "retrieved_chunks": [],
+                "reranked_chunks": [],
+                "context_package": {},
+                "draft_report": {},
+                "gap_result": {},
+                "iteration": 0,
+                "final_report": {},
+                "status": "running",
+                "error": None,
+            }
+
+            _emit({"type": "stage", "stage": "planner", "status": "active"})
+
+            final_state: dict = {}
+            for chunk in graph.stream(initial_state):
+                for node_name, state_update in chunk.items():
+                    stage_id = NODE_TO_STAGE.get(node_name)
+                    if stage_id:
+                        _emit({"type": "stage", "stage": stage_id, "status": "done"})
+
+                    if node_name == "analyze_gaps":
+                        gap = state_update.get("gap_result", {})
+                        iteration = state_update.get("iteration", 0)
+                        confidence = state_update.get("draft_report", {}).get("confidence_score", 0.0)
+                        if (
+                            gap.get("has_gaps")
+                            and iteration < MAX_RESEARCH_ITERATIONS
+                            and confidence < MIN_CONFIDENCE_SCORE
+                        ):
+                            _emit({"type": "stage", "stage": "retrieval", "status": "active"})
+                        else:
+                            _emit({"type": "stage", "stage": "report", "status": "active"})
+                    elif node_name in NEXT_NODE:
+                        next_stage = NODE_TO_STAGE.get(NEXT_NODE[node_name])
+                        if next_stage:
+                            _emit({"type": "stage", "stage": next_stage, "status": "active"})
+
+                    final_state = state_update
+
+            if final_state.get("status") == "error":
+                _emit({"type": "error", "message": final_state.get("error", "Pipeline error")})
+            else:
+                try:
+                    _save_report_sync(topic, final_state)
+                except Exception:
+                    pass
+                try:
+                    result = json.loads(json.dumps(final_state, default=str))
+                except Exception:
+                    result = {"status": "complete"}
+                _emit({"type": "result", "data": result})
+
+        except Exception as exc:
+            _emit({"type": "error", "message": str(exc)})
+        finally:
+            _emit({"type": "done"})
+
+    loop.run_in_executor(None, _run)
+
+    async def event_stream():
+        while True:
+            item = await queue.get()
+            yield f"data: {json.dumps(item)}\n\n"
+            if item.get("type") in ("done", "error"):
+                break
+
+    return _SR(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.get("/status")
