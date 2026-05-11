@@ -97,9 +97,11 @@ class ChromaVectorStore:
         query: str,
         top_k: int = 10,
         filter_metadata: Optional[Dict] = None,
+        session_id: Optional[str] = None,
     ) -> List[Dict]:
         """
         Semantic search. Returns list of {chunk_id, text, metadata, score, rank}.
+        Pass session_id to restrict results to a specific upload session.
         """
         if not query.strip():
             return []
@@ -107,10 +109,13 @@ class ChromaVectorStore:
             q_emb = self.embedder.embed_text(query)
             if not q_emb:
                 return []
+            where = filter_metadata
+            if session_id and not where:
+                where = {"session_id": session_id}
             results = self.collection.query(
                 query_embeddings=[q_emb],
                 n_results=min(top_k, max(self.collection.count(), 1)),
-                where=filter_metadata,
+                where=where,
             )
             formatted = []
             if results["ids"] and results["ids"][0]:

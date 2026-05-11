@@ -104,10 +104,12 @@ app.add_middleware(
 
 class IndexRequest(BaseModel):
     filenames: Optional[List[str]] = []
+    session_id: Optional[str] = None
 
 
 class ResearchRequest(BaseModel):
     topic: str
+    session_id: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -170,18 +172,18 @@ async def index_files(req: IndexRequest):
 
         indexer = DocumentIndexer()
         results: Dict[str, int] = {}
-
+        session_id = req.session_id or None
         filenames = req.filenames if req.filenames else None
 
         if not filenames:
             # Index all files in UPLOADS_DIR
-            raw = indexer.index_directory(UPLOADS_DIR)
+            raw = indexer.index_directory(UPLOADS_DIR, session_id=session_id)
             results.update(raw)
         else:
             for fname in filenames:
                 file_path = UPLOADS_DIR / fname
                 try:
-                    count = indexer.index_file(file_path)
+                    count = indexer.index_file(file_path, session_id=session_id)
                     results[fname] = count
                 except Exception:
                     results[fname] = 0
@@ -208,6 +210,7 @@ async def run_research(req: ResearchRequest):
         graph = build_graph()
         initial_state = {
             "topic": topic,
+            "session_id": req.session_id or None,
             "sub_questions": [],
             "retrieved_chunks": [],
             "reranked_chunks": [],
@@ -284,6 +287,7 @@ async def stream_research(req: ResearchRequest):
             graph = build_graph()
             initial_state = {
                 "topic": topic,
+                "session_id": req.session_id or None,
                 "sub_questions": [],
                 "retrieved_chunks": [],
                 "reranked_chunks": [],

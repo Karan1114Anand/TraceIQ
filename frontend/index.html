@@ -700,8 +700,8 @@ async function apiUpload(files) {
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
-async function apiIndex(filenames=[]) {
-  const r = await fetch(`${API}/index`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filenames})});
+async function apiIndex(filenames=[], sessionId=null) {
+  const r = await fetch(`${API}/index`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filenames, session_id: sessionId})});
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
@@ -716,6 +716,7 @@ async function apiDeleteFile(filename) {
 
 // ─── State ───────────────────────────────────────────────────────────────────
 let uploadedFiles = {}; // filename -> {chunkCount}
+let currentSessionId = crypto.randomUUID(); // scopes index + retrieval to this browser session
 let researchRunning = false;
 let lastState = null;
 let viewingHistory = false;
@@ -960,7 +961,7 @@ async function handleIndex() {
   lbl.textContent = 'Indexing…';
   try {
     const filenames = Object.keys(uploadedFiles);
-    const res = await apiIndex(filenames);
+    const res = await apiIndex(filenames, currentSessionId);
     let total = 0;
     Object.entries(res.indexed).forEach(([name, count]) => {
       if (uploadedFiles[name]) uploadedFiles[name].chunkCount = count;
@@ -1058,7 +1059,7 @@ async function handleResearch() {
     const response = await fetch(`${API}/research/stream`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({topic})
+      body: JSON.stringify({topic, session_id: currentSessionId})
     });
     if (!response.ok) {
       const e = await response.json();

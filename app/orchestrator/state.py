@@ -29,6 +29,7 @@ class ResearchState(TypedDict, total=False):
     """
 
     topic: str
+    session_id: Optional[str]          # scopes retrieval to a single upload session
     sub_questions: List[Dict[str, Any]]
     retrieved_chunks: List[Dict[str, Any]]
     reranked_chunks: List[Dict[str, Any]]

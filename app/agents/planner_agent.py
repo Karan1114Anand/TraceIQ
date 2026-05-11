@@ -22,7 +22,7 @@ _CATEGORIES = ["foundations", "applications", "frontiers"]
 
 def _chat(prompt: str, model: str = OLLAMA_MODEL, base_url: str = OLLAMA_BASE_URL) -> str:
     client = ollama.Client(host=base_url)
-    response = client.chat(model=model, messages=[{"role": "user", "content": prompt}])
+    response = client.chat(model=model, messages=[{"role": "user", "content": prompt}], think=False)
     return response["message"]["content"].strip()
 
 

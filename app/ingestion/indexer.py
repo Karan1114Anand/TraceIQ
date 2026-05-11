@@ -61,9 +61,15 @@ class DocumentIndexer:
     # Public API
     # ------------------------------------------------------------------
 
-    def index_file(self, file_path: Path) -> int:
+    def index_file(self, file_path: Path, session_id: Optional[str] = None) -> int:
         """
         Index a single document file.
+
+        Args:
+            file_path:  Path to the document.
+            session_id: Optional session identifier. When provided, it is stored
+                        as metadata on every chunk so retrieval can be scoped to
+                        this session only.
 
         Returns:
             Number of chunks successfully indexed.
@@ -93,6 +99,8 @@ class DocumentIndexer:
             "page_count": parsed.get("page_count", 0),
             **{k: str(v) for k, v in parsed.get("metadata", {}).items()},
         }
+        if session_id:
+            doc_metadata["session_id"] = session_id
         raw_chunks = self.chunker.chunk_document(parsed["text"], metadata=doc_metadata)
         if not raw_chunks:
             logger.warning(f"No chunks produced for {file_path.name}")
@@ -132,6 +140,7 @@ class DocumentIndexer:
         self,
         directory: Path = UPLOADS_DIR,
         recursive: bool = True,
+        session_id: Optional[str] = None,
     ) -> Dict[str, int]:
         """
         Index all supported files in a directory.
@@ -148,7 +157,7 @@ class DocumentIndexer:
         results: Dict[str, int] = {}
         for file_path in directory.glob(pattern):
             if file_path.is_file() and self.parser.is_supported(file_path):
-                results[file_path.name] = self.index_file(file_path)
+                results[file_path.name] = self.index_file(file_path, session_id=session_id)
 
         total = sum(results.values())
         logger.success(f"Directory indexing complete. {total} chunks across {len(results)} files.")

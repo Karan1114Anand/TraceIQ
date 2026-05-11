@@ -40,7 +40,7 @@ for _d in [DATA_DIR, UPLOADS_DIR, CHROMA_DIR, OUTPUT_DIR, LOGS_DIR]:
 # Ollama
 # ---------------------------------------------------------------------------
 OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "mistral")
+OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen3:4b")
 OLLAMA_EMBEDDING_MODEL: str = os.getenv("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text")
 OLLAMA_TEMPERATURE: float = float(os.getenv("OLLAMA_TEMPERATURE", "0.25"))
 OLLAMA_TOP_P: float = float(os.getenv("OLLAMA_TOP_P", "0.9"))
