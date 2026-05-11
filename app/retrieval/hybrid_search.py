@@ -46,6 +46,7 @@ class HybridRetriever:
         query: str,
         top_k: int = RETRIEVAL_TOP_K,
         rrf_k: int = RRF_K,
+        session_id: Optional[str] = None,
     ) -> List[Dict]:
         """
         Run both retrievers, fuse results with RRF, return top-k chunks.
@@ -53,8 +54,8 @@ class HybridRetriever:
         Returns:
             List of chunk dicts with extra key 'rrf_score'.
         """
-        sem_results = self.semantic.retrieve(query, top_k=top_k)
-        kw_results = self.keyword.retrieve(query, top_k=top_k)
+        sem_results = self.semantic.retrieve(query, top_k=top_k, session_id=session_id)
+        kw_results = self.keyword.retrieve(query, top_k=top_k, session_id=session_id)
 
         return self._rrf_merge(sem_results, kw_results, top_k=top_k, rrf_k=rrf_k)
 

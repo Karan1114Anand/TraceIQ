@@ -2,13 +2,13 @@
 Configuration for Autonomous Research Analyst - Hybrid Local Architecture
 
 ACTIVE ARCHITECTURE:
-  - Text Generation: Ollama (local) - mistral model
+  - Text Generation: Ollama (local) - qwen3:4b model
   - Embeddings: HuggingFace sentence-transformers (local) - no API calls
   - Vector Store: ChromaDB (local)
   - Cost: $0.00 - everything runs locally
 
 ACTIVE SETTINGS:
-  ✓ OLLAMA_MODEL - Ollama model name (default: mistral)
+  ✓ OLLAMA_MODEL - Ollama model name (default: qwen3:4b)
   ✓ OLLAMA_BASE_URL - Ollama server URL (default: http://localhost:11434)
   ✓ OLLAMA_TEMPERATURE - Sampling temperature (default: 0.25)
   ✓ OLLAMA_TOP_P - Nucleus sampling (default: 0.9)
@@ -52,7 +52,7 @@ class OllamaConfig(BaseModel):
     """
     
     model: str = Field(
-        default="mistral",
+        default="qwen3:4b",
         description="Ollama model name",
         min_length=1
     )
@@ -109,7 +109,7 @@ class OllamaConfig(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "model": "mistral",
+                "model": "qwen3:4b",
                 "base_url": "http://localhost:11434",
                 "temperature": 0.25,
                 "top_p": 0.9,
@@ -208,7 +208,7 @@ class HybridConfig(BaseModel):
         json_schema_extra = {
             "example": {
                 "ollama": {
-                    "model": "mistral",
+                    "model": "qwen3:4b",
                     "base_url": "http://localhost:11434",
                     "temperature": 0.25,
                     "top_p": 0.9,

@@ -82,9 +82,10 @@ def retrieve_node(state: ResearchState) -> ResearchState:
     else:
         queries = [q["question"] for q in sub_questions]
 
+    session_id = state.get("session_id")
     all_chunks: Dict[str, Any] = {}
     for query in queries:
-        hits = _hybrid_retriever.retrieve(query, top_k=RETRIEVAL_TOP_K, rrf_k=RRF_K)
+        hits = _hybrid_retriever.retrieve(query, top_k=RETRIEVAL_TOP_K, rrf_k=RRF_K, session_id=session_id)
         for h in hits:
             # Deduplicate by chunk_id, keep highest rrf_score
             cid = h["chunk_id"]

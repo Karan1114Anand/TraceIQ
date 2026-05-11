@@ -72,30 +72,41 @@ class BM25Store:
         self,
         query: str,
         top_k: int = 10,
+        session_id: Optional[str] = None,
     ) -> List[Dict]:
         """
         Keyword search using BM25.
 
         Returns list of {chunk_id, text, metadata, score, rank}.
+        Pass session_id to restrict results to a specific upload session.
         """
         if not query.strip() or not self.bm25:
             return []
         try:
             tokens = self._tokenize(query)
             scores = self.bm25.get_scores(tokens)
-            top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
+            # Score all, then filter by session_id before taking top_k
+            all_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
             results = []
-            for rank, idx in enumerate(top_indices, 1):
-                if scores[idx] > 0:
-                    results.append(
-                        {
-                            "chunk_id": self.chunk_metadata[idx]["chunk_id"],
-                            "text": self.corpus[idx],
-                            "metadata": self.chunk_metadata[idx]["metadata"],
-                            "score": float(scores[idx]),
-                            "rank": rank,
-                        }
-                    )
+            rank = 1
+            for idx in all_indices:
+                if scores[idx] <= 0:
+                    break
+                meta = self.chunk_metadata[idx]["metadata"]
+                if session_id and meta.get("session_id") != session_id:
+                    continue
+                results.append(
+                    {
+                        "chunk_id": self.chunk_metadata[idx]["chunk_id"],
+                        "text": self.corpus[idx],
+                        "metadata": meta,
+                        "score": float(scores[idx]),
+                        "rank": rank,
+                    }
+                )
+                rank += 1
+                if len(results) >= top_k:
+                    break
             return results
         except Exception as exc:
             logger.error(f"BM25 search error: {exc}")

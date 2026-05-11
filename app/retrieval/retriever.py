@@ -22,9 +22,9 @@ class SemanticRetriever:
     def __init__(self, store: Optional[ChromaVectorStore] = None) -> None:
         self.store = store or ChromaVectorStore()
 
-    def retrieve(self, query: str, top_k: int = RETRIEVAL_TOP_K) -> List[Dict]:
-        """Return top-k semantically similar chunks."""
-        results = self.store.search(query, top_k=top_k)
+    def retrieve(self, query: str, top_k: int = RETRIEVAL_TOP_K, session_id: Optional[str] = None) -> List[Dict]:
+        """Return top-k semantically similar chunks, optionally scoped to a session."""
+        results = self.store.search(query, top_k=top_k, session_id=session_id)
         logger.debug(f"SemanticRetriever: {len(results)} results for '{query[:60]}'")
         return results
 
@@ -35,8 +35,8 @@ class KeywordRetriever:
     def __init__(self, store: Optional[BM25Store] = None) -> None:
         self.store = store or BM25Store()
 
-    def retrieve(self, query: str, top_k: int = RETRIEVAL_TOP_K) -> List[Dict]:
-        """Return top-k keyword-matched chunks."""
-        results = self.store.search(query, top_k=top_k)
+    def retrieve(self, query: str, top_k: int = RETRIEVAL_TOP_K, session_id: Optional[str] = None) -> List[Dict]:
+        """Return top-k keyword-matched chunks, optionally scoped to a session."""
+        results = self.store.search(query, top_k=top_k, session_id=session_id)
         logger.debug(f"KeywordRetriever: {len(results)} results for '{query[:60]}'")
         return results
